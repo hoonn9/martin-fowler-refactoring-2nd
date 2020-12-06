@@ -4,7 +4,8 @@
   "description": "martin-fowler-refactoring-2nd",
   "main": "index.js",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "start": "npx babel-node index.js"
   },
   "repository": {
     "type": "git",
@@ -17,8 +18,15 @@
   },
   "homepage": "https://github.com/hoonn9/martin-fowler-refactoring-2nd#readme",
   "devDependencies": {
+    "@babel/node": "^7.12.6",
+    "@babel/preset-env": "^7.12.7",
     "eslint-config-prettier": "^6.15.0",
     "eslint-plugin-prettier": "^3.2.0",
     "prettier": "^2.2.1"
+  },
+  "dependencies": {
+    "@babel/cli": "^7.12.8",
+    "@babel/core": "^7.12.9",
+    "@babel/plugin-transform-runtime": "^7.12.1"
   }
 }
