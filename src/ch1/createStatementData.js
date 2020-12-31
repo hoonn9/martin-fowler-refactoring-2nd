@@ -1,59 +1,80 @@
 const createStatementData = (invoice, plays) => {
-    const playFor = (aPerformance) => plays[aPerformance.playID];
+  const enrichPerformance = (aPerformance) => {
+    const calculator = createPerformanceCalculator(aPerformance, playFor(aPerformance));
+    const result = Object.assign({}, aPerformance);
+    result.play = calculator.play;
+    result.amount = calculator.amount;
+    result.volumeCredits = calculator.volumeCredits;
 
-    const amountFor = (aPerformance) => {
-        let result = 0;
+    return result;
+  };
 
-        switch (aPerformance.play.type) {
-            case 'tragedy':
-                result = 40000;
-                if (aPerformance.audience > 30) {
-                    result += 1000 * (aPerformance.audience - 30);
-                }
-                break;
-            case 'comedy':
-                result = 30000;
-                if (aPerformance.audience > 20) {
-                    result += 1000 + 500 * (aPerformance.audience - 20);
-                }
-                result += 300 * aPerformance.audience;
-                break;
+  const playFor = (aPerformance) => plays[aPerformance.playID];
 
-            default:
-                throw new Error(`알 수 없는 장르: ${aPerformance.play.type}`);
-        }
+  const totalVolumeCredits = (data) => data.performances.reduce((total, p) => total + p.volumeCredits, 0);
 
-        return result;
-    };
+  const totalAmount = (data) => data.performances.reduce((total, p) => total + p.amount, 0);
 
-    const volumeCreditFor = (aPerformance) => {
-        let result = 0;
-        result += Math.max(aPerformance.audience - 30, 0);
-        // comedy 3명 마다 추가 포인트
-        if ('comedy' === aPerformance.play.type) {
-            result += Math.floor(aPerformance.audience / 5);
-        }
-        return result;
-    };
-    const enrichPerformance = (aPerformance) => {
-        const result = Object.assign({}, aPerformance);
-        result.play = playFor(result);
-        result.amount = amountFor(result);
-        result.volumeCredits = volumeCreditFor(result);
+  const statementData = {};
+  statementData.customer = invoice.customer;
+  statementData.performances = invoice.performances.map(enrichPerformance);
 
-        return result;
-    };
-    const totalVolumeCredits = (data) => data.performances.reduce((total, p) => total + p.volumeCredits, 0);
+  statementData.totalAmount = totalAmount(statementData);
+  statementData.totalVolumeCredits = totalVolumeCredits(statementData);
 
-    const totalAmount = (data) => data.performances.reduce((total, p) => total + p.amount, 0);
-
-    const statementData = {};
-    statementData.customer = invoice.customer;
-    statementData.performances = invoice.performances.map(enrichPerformance);
-    statementData.totalAmount = totalAmount(statementData);
-    statementData.totalVolumeCredits = totalVolumeCredits(statementData);
-
-    return statementData;
+  return statementData;
 };
+
+// Factory function
+// 자바스크립트는 클래스에서 생성자가 서브클래스의 인스턴스를 반환할 수 없어서 사용
+const createPerformanceCalculator = (aPerformance, aPlay) => {
+  switch (aPlay.type) {
+    case 'tragedy':
+      return new TragedyCalculator(aPerformance, aPlay);
+    case 'comedy':
+      return new ComedyCalculator(aPerformance, aPlay);
+    default:
+      throw new Error(`알 수 없는 장르: ${aPlay.type}`);
+  }
+};
+
+class PerformanceCalculator {
+  constructor(aPerformance, aPlay) {
+    this.performance = aPerformance;
+    this.play = aPlay;
+  }
+  get amount() {
+    throw new Error(`서브 클래스에서 처리하도록 설계되었습니다.`);
+  }
+
+  get volumeCredits() {
+    return Math.max(this.performance.audience - 30, 0);
+  }
+}
+
+class TragedyCalculator extends PerformanceCalculator {
+  get amount() {
+    let result = 40000;
+    if (this.performance.audience > 30) {
+      result += 1000 * (this.performance.audience - 30);
+    }
+
+    return result;
+  }
+}
+class ComedyCalculator extends PerformanceCalculator {
+  get amount() {
+    let result = 30000;
+    if (this.performance.audience > 20) {
+      result += 1000 + 500 * (this.performance.audience - 20);
+    }
+    result += 300 * this.performance.audience;
+    return result;
+  }
+
+  get volumeCredits() {
+    return super.volumeCredits + Math.floor(this.performance.audience / 5);
+  }
+}
 
 export default createStatementData;
